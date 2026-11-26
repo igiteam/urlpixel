@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<!-- saved from url=(0066)https://songdrop.fra1.cdn.digitaloceanspaces.com/rtx/urlpixel.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URLPixel - Web/Image to PNG</title>
+
+    <meta name="description" content="URL/image to PNG capture service">
+    <link rel="icon" href="https://cdn.gitgpt.chat/rtx/images/urlpixel-logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="https://cdn.gitgpt.chat/rtx/images/urlpixel-logo.png" sizes="180x180">
+    <link rel="icon" type="image/png" href="https://cdn.gitgpt.chat/rtx/images/urlpixel-logo.png" sizes="192x192">
+    <link rel="icon" type="image/png" href="https://cdn.gitgpt.chat/rtx/images/urlpixel-logo.png" sizes="512x512">
+    <meta itemprop="name" content="URLPixel - Web/Image to PNG">
+    <meta itemprop="description" content="URL/image to PNG capture service">
+    <meta property="og:title" content="URLPixel - Web/Image to PNG">
+    <meta property="og:description" content="URL/image to PNG capture service">
+    <meta property="og:url" content="">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="URLPixel - Web/Image to PNG">
+    <meta name="twitter:description" content="URL/image to PNG capture service">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <style>
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .image-container {
+            position: relative;
+            min-height: 200px;
+        }
+
+        .image-placeholder {
+            color: #666;
+            text-align: center;
+            padding: 50px;
+            border: 1px dashed #ccc;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <h1 style="display: flex; align-items: center; justify-content: left; gap: 10px;"><img src="https://cdn.gitgpt.chat/rtx/images/urlpixel-logo.png" style="width: 36px;"> Website/Image Screenshot
+        Service</h1>
+    <form id="screenshot-form">
+        <label for="url">URL:</label>
+        <input type="text" id="url" name="url" placeholder="example.com or https://example.com" size="50" required="">
+
+        <div style="margin: 10px 0;">
+            <label>Quick sizes:</label>
+            <button type="button" id="btn-square">Square (512x512)</button>
+            <button type="button" id="btn-widescreen">Widescreen (1280x720)</button>
+            <button type="button" id="btn-fullhd">Full HD (1920x1080)</button>
+            <button type="button" id="btn-instagram">Instagram (1080x1080)</button>
+        </div>
+
+        <label for="width">Width (px):</label>
+        <input type="number" id="width" name="width" value="512" step="1">
+
+        <label for="height">Height (px):</label>
+        <input type="number" id="height" name="height" value="512" step="1">
+
+        <label for="fit">Fit:</label>
+        <select id="fit" name="fit">
+            <option value="cover">cover</option>
+            <option value="contain">contain</option>
+            <option value="fill">fill</option>
+        </select>
+
+        <label>
+            <input type="checkbox" id="recache" name="recache" value="1">
+            Clear cache (&amp;c=1 / rc=1)
+        </label>
+
+        <div style="margin-top: 10px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+            <button type="submit" id="generate-btn">Generate Screenshot</button>
+            <div style="display: flex; align-items: center; gap: 8px; font-family: monospace; font-size: 13px; background: #f5f5f5; padding: 5px 12px; border-radius: 4px;">
+                <span id="api-url-display" style="color: #0066cc; word-break: break-all;">—</span>
+                <button type="button" id="copy-api-btn" style="background: none; border: none; cursor: pointer; font-size: 14px;">📋</button>
+            </div>
+        </div>
+    </form>
+
+    <hr>
+
+    <div id="result">
+        <h3>Screenshot:</h3>
+        <div class="image-container">
+            <img id="screenshot-image" src="https://songdrop.fra1.cdn.digitaloceanspaces.com/rtx/urlpixel.html" alt="Screenshot preview" style="max-width: 100%; display: none; border: 1px solid #ccc;">
+            <div id="loader-placeholder" class="image-placeholder">Enter a URL and click Generate or use quick size buttons</div>
+        </div>
+    </div>
+
+    <hr>
+
+    <div id="api-info">
+        <h3>API Info:</h3>
+        <p><strong>Base URL:</strong> https://img.gitgpt.chat/</p>
+        <p><strong>Parameters:</strong></p>
+        <ul>
+            <li><code>url</code> - Website URL or image URL</li>
+            <li><code>w</code> - Width in pixels (default: 1280)</li>
+            <li><code>h</code> - Height in pixels (default: 720)</li>
+            <li><code>fit</code> - Fit mode: cover, contain, fill (default: cover)</li>
+            <li><code>rc=1</code> or <code>c=1</code> - Force refresh/clear cache</li>
+        </ul>
+        <p><strong>Example:</strong> <code>https://img.gitgpt.chat/?url=github.com&amp;w=512&amp;h=512&amp;fit=cover&amp;rc=1</code></p>
+    </div>
+
+    <script>
+        const form = document.getElementById('screenshot-form');
+        const urlInput = document.getElementById('url');
+        const widthInput = document.getElementById('width');
+        const heightInput = document.getElementById('height');
+        const fitSelect = document.getElementById('fit');
+        const recacheCheckbox = document.getElementById('recache');
+        const imgElement = document.getElementById('screenshot-image');
+        const generateBtn = document.getElementById('generate-btn');
+        const loaderPlaceholder = document.getElementById('loader-placeholder');
+
+        // Buttons
+        const btnSquare = document.getElementById('btn-square');
+        const btnWidescreen = document.getElementById('btn-widescreen');
+        const btnFullHD = document.getElementById('btn-fullhd');
+        const btnInstagram = document.getElementById('btn-instagram');
+
+        // Base API URL
+        const API_BASE = 'https://img.gitgpt.chat/';
+
+        // Save all values to localStorage
+        function saveToLocalStorage() {
+            localStorage.setItem('screenshot_url', urlInput.value);
+            localStorage.setItem('screenshot_width', widthInput.value);
+            localStorage.setItem('screenshot_height', heightInput.value);
+            localStorage.setItem('screenshot_fit', fitSelect.value);
+            localStorage.setItem('screenshot_recache', recacheCheckbox.checked);
+        }
+
+        // Load all values from localStorage
+        function loadFromLocalStorage() {
+            const savedUrl = localStorage.getItem('screenshot_url');
+            const savedWidth = localStorage.getItem('screenshot_width');
+            const savedHeight = localStorage.getItem('screenshot_height');
+            const savedFit = localStorage.getItem('screenshot_fit');
+            const savedRecache = localStorage.getItem('screenshot_recache');
+
+            if (savedUrl) urlInput.value = savedUrl;
+            if (savedWidth) widthInput.value = savedWidth;
+            if (savedHeight) heightInput.value = savedHeight;
+            if (savedFit) fitSelect.value = savedFit;
+            if (savedRecache !== null) recacheCheckbox.checked = savedRecache === 'true';
+        }
+
+        // Show loader
+        function showLoader() {
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = 'Generating... <span class="loader"></span>';
+            imgElement.style.display = 'none';
+            loaderPlaceholder.style.display = 'block';
+            loaderPlaceholder.innerHTML = '<div class="loading-text">Loading screenshot... <span class="loader"></span></div>';
+        }
+
+        // Hide loader
+        function hideLoader() {
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = 'Generate Screenshot';
+        }
+
+        // Show error
+        function showError(message) {
+            loaderPlaceholder.style.display = 'block';
+            loaderPlaceholder.innerHTML = `<div style="color: red;">Error: ${message}</div>`;
+            imgElement.style.display = 'none';
+        }
+
+        // Function to generate screenshot
+        function generateScreenshot() {
+            // Get values
+            let targetUrl = urlInput.value.trim();
+            const width = widthInput.value || '512';
+            const height = heightInput.value || '512';
+            const fit = fitSelect.value;
+            const recache = recacheCheckbox.checked ? '1' : '0';
+
+            if (!targetUrl) {
+                alert('Please enter a URL');
+                return false;
+            }
+
+            // Save to localStorage
+            saveToLocalStorage();
+
+            // Show loader
+            showLoader();
+
+            // Remove protocol for the API
+            let cleanUrl = targetUrl;
+            if (cleanUrl.startsWith('http://')) {
+                cleanUrl = cleanUrl.substring(7);
+            } else if (cleanUrl.startsWith('https://')) {
+                cleanUrl = cleanUrl.substring(8);
+            }
+
+            // Build API URL
+            let apiUrl = `${API_BASE}?url=${encodeURIComponent(cleanUrl)}&w=${width}&h=${height}&fit=${fit}`;
+
+            // Add recache parameter if checked
+            if (recache === '1') {
+                apiUrl += '&rc=1';
+                apiUrl += `&_=${Date.now()}`;
+            }
+
+            // Set up image load handler
+            imgElement.onload = function () {
+                hideLoader();
+                loaderPlaceholder.style.display = 'none';
+                imgElement.style.display = 'block';
+            };
+
+            imgElement.onerror = function () {
+                hideLoader();
+                showError('Failed to load screenshot. Check the URL or try again.');
+                imgElement.style.display = 'none';
+            };
+
+            // Load the image
+            imgElement.src = apiUrl;
+            imgElement.alt = `Screenshot of ${targetUrl} (${width}x${height})`;
+
+            console.log('Request URL:', apiUrl);
+            return false;
+        }
+
+        // Save on input changes
+        urlInput.addEventListener('input', saveToLocalStorage);
+        widthInput.addEventListener('input', saveToLocalStorage);
+        heightInput.addEventListener('input', saveToLocalStorage);
+        fitSelect.addEventListener('change', saveToLocalStorage);
+        recacheCheckbox.addEventListener('change', saveToLocalStorage);
+
+        // Quick size buttons
+        btnSquare.addEventListener('click', () => {
+            widthInput.value = '512';
+            heightInput.value = '512';
+            saveToLocalStorage();
+            if (urlInput.value.trim()) {
+                generateScreenshot();
+            }
+        });
+
+        btnWidescreen.addEventListener('click', () => {
+            widthInput.value = '1280';
+            heightInput.value = '720';
+            saveToLocalStorage();
+            if (urlInput.value.trim()) {
+                generateScreenshot();
+            }
+        });
+
+        btnFullHD.addEventListener('click', () => {
+            widthInput.value = '1920';
+            heightInput.value = '1080';
+            saveToLocalStorage();
+            if (urlInput.value.trim()) {
+                generateScreenshot();
+            }
+        });
+
+        btnInstagram.addEventListener('click', () => {
+            widthInput.value = '1080';
+            heightInput.value = '1080';
+            saveToLocalStorage();
+            if (urlInput.value.trim()) {
+                generateScreenshot();
+            }
+        });
+
+        // Handle form submission
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            generateScreenshot();
+        });
+
+        // Display API URL next to generate button
+        const apiUrlDisplay = document.getElementById('api-url-display');
+        const copyApiBtn = document.getElementById('copy-api-btn');
+
+        function updateApiUrlDisplay() {
+            let targetUrl = urlInput.value.trim();
+            if (!targetUrl) {
+                apiUrlDisplay.textContent = '—';
+                return;
+            }
+
+            let cleanUrl = targetUrl;
+            if (cleanUrl.startsWith('http://')) cleanUrl = cleanUrl.substring(7);
+            else if (cleanUrl.startsWith('https://')) cleanUrl = cleanUrl.substring(8);
+
+            const width = widthInput.value || '512';
+            const height = heightInput.value || '512';
+            const fit = fitSelect.value;
+            const recache = recacheCheckbox.checked ? '1' : '0';
+
+            let apiUrl = `${API_BASE}?url=${encodeURIComponent(cleanUrl)}&w=${width}&h=${height}&fit=${fit}`;
+            if (recache === '1') apiUrl += '&rc=1';
+
+            apiUrlDisplay.textContent = apiUrl;
+        }
+
+        // Copy button functionality
+        copyApiBtn.addEventListener('click', () => {
+            const url = apiUrlDisplay.textContent;
+            if (url && url !== '—') {
+                navigator.clipboard.writeText(url);
+                const originalText = copyApiBtn.textContent;
+                copyApiBtn.textContent = '✓';
+                setTimeout(() => { copyApiBtn.textContent = originalText; }, 1500);
+            }
+        });
+
+        // Update display when inputs change
+        urlInput.addEventListener('input', updateApiUrlDisplay);
+        widthInput.addEventListener('input', updateApiUrlDisplay);
+        heightInput.addEventListener('input', updateApiUrlDisplay);
+        fitSelect.addEventListener('change', updateApiUrlDisplay);
+        recacheCheckbox.addEventListener('change', updateApiUrlDisplay);
+
+        // Initial update
+        updateApiUrlDisplay();
+        // Load saved values from localStorage on page load
+        loadFromLocalStorage();
+
+        // Show placeholder
+        loaderPlaceholder.innerHTML = 'Enter a URL and click Generate or use quick size buttons';
+    </script>
+
+
+</body></html>
